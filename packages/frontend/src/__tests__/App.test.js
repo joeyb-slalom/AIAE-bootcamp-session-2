@@ -1,5 +1,5 @@
 import React, { act } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { rest } from 'msw';
 import { setupServer } from 'msw/node';
@@ -93,8 +93,13 @@ describe('App Component', () => {
     await act(async () => {
       render(<App />);
     });
+
     expect(screen.getByText('Calm TODO Planner')).toBeInTheDocument();
     expect(screen.getByText(/Capture tasks, choose due dates/)).toBeInTheDocument();
+    expect(screen.getByText('Add a task')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Plan sprint review')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add TODO' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Status')).toBeInTheDocument();
   });
 
   test('loads and displays TODO items', async () => {
@@ -107,9 +112,14 @@ describe('App Component', () => {
 
     // Wait for items to load
     await waitFor(() => {
+      expect(screen.queryByText('Loading TODOs...')).not.toBeInTheDocument();
       expect(screen.getByDisplayValue('Test Todo 1')).toBeInTheDocument();
       expect(screen.getByDisplayValue('Test Todo 2')).toBeInTheDocument();
     });
+
+    expect(screen.queryByText('No TODOs found for the selected filters.')).not.toBeInTheDocument();
+    expect(screen.getByText('Total: 2')).toBeInTheDocument();
+    expect(screen.getByText('Completed: 1')).toBeInTheDocument();
   });
 
   test('adds a new TODO item', async () => {
@@ -122,6 +132,7 @@ describe('App Component', () => {
     // Wait for items to load
     await waitFor(() => {
       expect(screen.queryByText('Loading TODOs...')).not.toBeInTheDocument();
+      expect(screen.getByText('Total: 2')).toBeInTheDocument();
     });
 
     // Fill in the form and submit
@@ -139,6 +150,10 @@ describe('App Component', () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue('New Test Todo')).toBeInTheDocument();
     });
+
+    expect(screen.getByPlaceholderText('Plan sprint review')).toHaveValue('');
+    expect(screen.getByText('Total: 3')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Complete' }).length).toBeGreaterThan(0);
   });
 
   test('handles API error', async () => {
@@ -156,7 +171,11 @@ describe('App Component', () => {
     // Wait for error message
     await waitFor(() => {
       expect(screen.getByText(/Failed to fetch TODOs/)).toBeInTheDocument();
+      expect(screen.queryByText('Loading TODOs...')).not.toBeInTheDocument();
     });
+
+    expect(screen.queryByDisplayValue('Test Todo 1')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Test Todo 2')).not.toBeInTheDocument();
   });
 
   test('shows empty state when no TODO items', async () => {
@@ -174,6 +193,198 @@ describe('App Component', () => {
     // Wait for empty state message
     await waitFor(() => {
       expect(screen.getByText('No TODOs found for the selected filters.')).toBeInTheDocument();
+      expect(screen.queryByText('Loading TODOs...')).not.toBeInTheDocument();
+    });
+
+    expect(screen.queryByDisplayValue('Test Todo 1')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Test Todo 2')).not.toBeInTheDocument();
+    expect(screen.getByText('Total: 0')).toBeInTheDocument();
+    expect(screen.getByText('Completed: 0')).toBeInTheDocument();
+  });
+
+  test('updates TODO title on blur', async () => {
+    const user = userEvent.setup();
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    const titleInput = await screen.findByDisplayValue('Test Todo 1');
+    await act(async () => {
+      await user.clear(titleInput);
+      await user.type(titleInput, 'Updated Todo Title');
+      await user.tab();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Updated Todo Title')).toBeInTheDocument();
+    });
+  });
+
+  test('toggles completed state and updates summary chip', async () => {
+    const user = userEvent.setup();
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Completed: 1')).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      await user.click(screen.getAllByRole('button', { name: 'Complete' })[0]);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Completed: 2')).toBeInTheDocument();
+    });
+  });
+
+  test('updates due date field', async () => {
+    await act(async () => {
+      render(<App />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Test Todo 1')).toBeInTheDocument();
+    });
+
+    const todoDueDateInput = screen.getByDisplayValue('2026-04-30');
+
+    fireEvent.change(todoDueDateInput, { target: { value: '2026-05-20' } });
+
+    await waitFor(() => {
+      expect(todoDueDateInput).toHaveValue('2026-05-20');
+    });
+  });
+
+  test('deletes a TODO and updates total count', async () => {
+    const user = userEvent.setup();
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Test Todo 1')).toBeInTheDocument();
+      expect(screen.getByText('Total: 2')).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      await user.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByDisplayValue('Test Todo 1')).not.toBeInTheDocument();
+      expect(screen.getByText('Total: 1')).toBeInTheDocument();
+    });
+  });
+
+  test('clears completed TODOs when clear button is clicked', async () => {
+    const user = userEvent.setup();
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Test Todo 2')).toBeInTheDocument();
+      expect(screen.getByText('Completed: 1')).toBeInTheDocument();
+    });
+
+    const clearButton = screen.getByRole('button', { name: 'Clear completed' });
+    expect(clearButton).toBeEnabled();
+
+    await act(async () => {
+      await user.click(clearButton);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByDisplayValue('Test Todo 2')).not.toBeInTheDocument();
+      expect(screen.getByText('Completed: 0')).toBeInTheDocument();
+    });
+  });
+
+  test('applies status and due date filters', async () => {
+    const user = userEvent.setup();
+
+    server.use(
+      rest.get('/api/todos', (req, res, ctx) => {
+        const status = req.url.searchParams.get('status');
+        const dueDate = req.url.searchParams.get('dueDate');
+
+        if (status === 'completed') {
+          return res(
+            ctx.status(200),
+            ctx.json([
+              {
+                id: 99,
+                title: 'Only Completed',
+                completed: true,
+                dueDate: '2026-06-01',
+                createdAt: '2026-06-01T00:00:00.000Z',
+                updatedAt: '2026-06-01T00:00:00.000Z',
+              },
+            ])
+          );
+        }
+
+        if (dueDate === 'without-due-date') {
+          return res(
+            ctx.status(200),
+            ctx.json([
+              {
+                id: 100,
+                title: 'No Due Date Item',
+                completed: false,
+                dueDate: null,
+                createdAt: '2026-06-02T00:00:00.000Z',
+                updatedAt: '2026-06-02T00:00:00.000Z',
+              },
+            ])
+          );
+        }
+
+        return res(
+          ctx.status(200),
+          ctx.json([
+            {
+              id: 1,
+              title: 'Test Todo 1',
+              completed: false,
+              dueDate: '2026-04-30',
+              createdAt: '2026-04-01T00:00:00.000Z',
+              updatedAt: '2026-04-01T00:00:00.000Z',
+            },
+          ])
+        );
+      })
+    );
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Test Todo 1')).toBeInTheDocument();
+    });
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Status' }));
+    await user.click(await screen.findByText('Completed'));
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Only Completed')).toBeInTheDocument();
+    });
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Status' }));
+    await user.click(await screen.findByText('All'));
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Due date' }));
+    await user.click(await screen.findByText('Without due date'));
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('No Due Date Item')).toBeInTheDocument();
     });
   });
 });
