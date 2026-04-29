@@ -1,94 +1,65 @@
-.App {
-  text-align: center;
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
+:root {
+  --bg-gradient-top: #f1f8f4;
+  --bg-gradient-bottom: #e8f1f8;
+  --hero-gradient-start: #0f766e;
+  --hero-gradient-end: #3b82f6;
+  --panel-bg: rgba(255, 255, 255, 0.92);
+  --text-strong: #1f2937;
+  --text-soft: #4b5563;
+  --line-soft: #d1dbe6;
 }
 
-.App-header {
-  background-color: #282c34;
-  padding: 20px;
-  color: white;
-  border-radius: 8px;
-  margin-bottom: 20px;
+.app-shell {
+  min-height: 100vh;
+  background: linear-gradient(160deg, var(--bg-gradient-top), var(--bg-gradient-bottom));
 }
 
-.App-header h1 {
-  margin: 0;
-  font-size: 1.8rem;
+.hero-panel {
+  border-radius: 20px;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--hero-gradient-start), var(--hero-gradient-end));
+  box-shadow: 0 20px 45px rgba(15, 118, 110, 0.22);
 }
 
-main {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.hero-title {
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
-section {
-  background-color: #f5f5f5;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.hero-subtitle {
+  max-width: 42ch;
+  opacity: 0.95;
 }
 
-.add-item-section form {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
+.panel {
+  border-radius: 16px;
+  background: var(--panel-bg);
+  border: 1px solid rgba(255, 255, 255, 0.7);
 }
 
-input {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+.todo-row {
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  align-items: flex-start;
 }
 
-button {
-  padding: 8px 16px;
-  background-color: #61dafb;
-  color: #282c34;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
+.todo-row:last-child {
+  margin-bottom: 0;
 }
 
-button:hover {
-  background-color: #21a1c9;
+.MuiListItemText-primary {
+  color: var(--text-strong);
+  font-weight: 600;
 }
 
-ul {
-  list-style-type: none;
-  padding: 0;
+.MuiListItemText-secondary {
+  color: var(--text-soft);
 }
 
-li {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-  text-align: left;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-li:last-child {
-  border-bottom: none;
-}
-
-.delete-btn {
-  background-color: #f44336;
-  color: white;
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  margin-left: 10px;
-}
-
-.delete-btn:hover {
-  background-color: #d32f2f;
-}
-
-.error {
-  color: #d32f2f;
-  font-weight: bold;
+@media (max-width: 600px) {
+  .hero-title {
+    font-size: 2rem;
+  }
 }
